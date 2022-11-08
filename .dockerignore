@@ -1,0 +1,6 @@
+mk/private.mk
+external
+.venv
+.bonfire
+.bonfire_venv
+.cicd_bootstrap.sh

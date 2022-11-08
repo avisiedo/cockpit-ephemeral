@@ -1,0 +1,109 @@
+# https://consoledot.pages.redhat.com/clowder/dev/api_reference.html
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: cockpit
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      labels:
+        app: cockpit
+      name: cockpit
+    spec:
+      envName: ${ENV_NAME}
+      # TODO Reference the proper testin iqePlugin
+      # testing:
+      #   iqePlugin: cockpit
+      # TODO Add dependencies as insight-host-inventory
+      dependencies: []
+      # - insight-host-inventoy
+      inMemoryDb: true
+      deployments:
+      - name: appservice
+        metadata:
+          labels:
+            app: cockpit
+        replicas: 3
+        podSpec:
+          #
+          serviceAccountName: deployer
+          image: ${IMAGE}:${IMAGE_TAG}
+          env:
+          - name: API_URL
+            value: https://test.cloud.redhat.com
+          - name: SESSION_INSTANCE_DOMAIN
+            # TODO Value copied from the kubernetes but probably it differs
+            value: .webconsoleapp-sessions.cockpit-dev.svc.cluster.local
+          # - name: MY_VARIABLE
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: my-secret-name
+          #       key: my-secret-key
+
+          # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+          # livenessProbe:
+          #   httpGet:
+          #     path: /ping
+          #     port: 8000
+          #     httpHeaders:
+          #     - name: Custom-Header
+          #       value: Awesome
+          #   initialDelaySeconds: 3
+          #   periodSeconds: 3
+
+          # readinessProbe:
+          #   httpGet:
+          #     path: /ping
+          #     port: 8000
+          #     httpHeaders:
+          #     - name: Custom-Header
+          #       value: Awesome
+          #   initialDelaySeconds: 3
+          #   periodSeconds: 3
+
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: ${CPU_REQUESTS}
+              memory: ${MEMORY_REQUESTS}
+          volumes:
+          - emptyDir: {}
+            name: tmpdir
+          volumeMounts:
+          - mountPath: /tmp
+            name: tmpdir
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: cockpit
+      name: cockpit-appservice
+    spec:
+      type: ClusterIP
+      ports:
+      - name: 8000-tcp
+        port: 8000
+        protocol: TCP
+        targetPort: 8000
+      selector:
+        app: content-sources-backend
+      sessionAffinity: None
+parameters:
+- name: ENV_NAME
+  required: true
+- name: IMAGE
+  required: true
+- name: IMAGE_TAG
+  required: true
+- name: CPU_LIMIT
+  value: 500m
+- name: CPU_REQUESTS
+  value: 100m
+- name: MEMORY_LIMIT
+  value: 1Gi
+- name: MEMORY_REQUESTS
+  value: 100Mi
